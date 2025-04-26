@@ -3,8 +3,8 @@ package main
 
 import (
 	"fmt"
-	"sort"
 	"hash/fnv"
+	"sort"
 )
 
 type HashRing struct {
@@ -52,4 +52,30 @@ func (r *HashRing) AddNode(node *Node, numVirtualNodes int) {
 	sort.Slice(r.sortedHashes, func(i, j int) bool {
 		return r.sortedHashes[i] < r.sortedHashes[j]
 	})
+}
+
+func (r *HashRing) GetNodesForKey(key string, n int) []*VirtualNode {
+	if len(r.sortedHashes) == 0 {
+		return nil
+	}
+	hash := calculateHash(key)
+	index := sort.Search(len(r.sortedHashes), func(i int) bool {
+		return r.sortedHashes[i] >= hash
+	})
+	if index == len(r.sortedHashes) {
+		index = 0
+	}
+
+	result := make([]*VirtualNode, 0, n)
+	distinctNodes := make(map[string]bool)
+
+	for len(result) < n && len(distinctNodes) < len(r.nodeToVirtualNodes) {
+		vnode := r.virtualNodes[r.sortedHashes[index]]
+		if !distinctNodes[vnode.PhysicalNodeID] {
+			distinctNodes[vnode.PhysicalNodeID] = true
+			result = append(result, vnode)
+		}
+		index = (index + 1) % len(r.sortedHashes)
+	}
+	return result
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"sort"
+	"slices"
 )
 
 type HashRing struct {
@@ -30,7 +31,7 @@ func NewHashRing() *HashRing {
 
 func (r *HashRing) AddNode(node *Node, numVirtualNodes int) {
 	// Create virtual nodes and distribute them around the ring
-	for i := 0; i < numVirtualNodes; i++ {
+	for i := range numVirtualNodes {
 		vnodeID := fmt.Sprintf("%s-%d", node.ID, i)
 		hash := calculateHash(vnodeID) // Using consistent hash function like murmur3
 
@@ -49,9 +50,7 @@ func (r *HashRing) AddNode(node *Node, numVirtualNodes int) {
 	for hash := range r.virtualNodes {
 		r.sortedHashes = append(r.sortedHashes, hash)
 	}
-	sort.Slice(r.sortedHashes, func(i, j int) bool {
-		return r.sortedHashes[i] < r.sortedHashes[j]
-	})
+	slices.Sort(r.sortedHashes)
 }
 
 func (r *HashRing) GetNodesForKey(key string, n int) []*VirtualNode {
